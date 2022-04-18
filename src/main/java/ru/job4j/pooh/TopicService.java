@@ -1,26 +1,26 @@
 package ru.job4j.pooh;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TopicService implements Service {
-    private static String queueName = "";
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedQueue<String>>> queue = new ConcurrentHashMap<>();
 
     @Override
     public Resp process(Req req) {
-        String text = "ok";
+        String result = "";
+        String status = "200";
         if ("POST".equals(req.httpRequestType())) {
+            queue.get(req.getSourceName()).forEach((key, value) -> value.add(req.getParam()));
+            result = req.getParam();
+        } else if ("GET".equals(req.httpRequestType())) {
             queue.putIfAbsent(req.getSourceName(), new ConcurrentHashMap<>());
-            queue.get(req.getSourceName()).putIfAbsent(queueName, new ConcurrentLinkedQueue<>());
-            queue.get(req.getSourceName()).get(queueName).add(req.getParam());
+            queue.get(req.getSourceName()).putIfAbsent(req.getParam(), new ConcurrentLinkedQueue<>());
+            result = queue.get(req.getSourceName()).get(req.getParam()).poll();
         } else {
-            queueName = req.getParam();
-            text = queue
-                    .getOrDefault(req.getSourceName(), new ConcurrentHashMap<>())
-                    .getOrDefault(req.getParam(), new ConcurrentLinkedQueue<>())
-                    .poll();
+            status = "501";
         }
-        return new Resp(text == null ? "" : text, "200");
+        return new Resp(Objects.requireNonNullElse(result, ""), status);
     }
 }
