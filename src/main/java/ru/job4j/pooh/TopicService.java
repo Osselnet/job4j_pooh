@@ -12,7 +12,8 @@ public class TopicService implements Service {
         String result = "";
         String status = "200";
         if ("POST".equals(req.httpRequestType())) {
-            queue.get(req.getSourceName()).forEach((key, value) -> value.add(req.getParam()));
+            queue.getOrDefault(req.getSourceName(), new ConcurrentHashMap<>())
+                    .forEach((key, value) -> value.add(req.getParam()));
             result = req.getParam();
         } else if ("GET".equals(req.httpRequestType())) {
             queue.putIfAbsent(req.getSourceName(), new ConcurrentHashMap<>());
